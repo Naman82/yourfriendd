@@ -4,4 +4,4 @@ from .models import *
 admin.site.register(Appointment)
 admin.site.register(Subscription_Model)
 admin.site.register(Subscriber)
-admin.site.register(Self_Care)
+# admin.site.register(Self_Care)

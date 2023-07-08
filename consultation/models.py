@@ -5,8 +5,9 @@ from authentication.models import User
 class Appointment(models.Model):
     doctor = models.ForeignKey(User, related_name="doctor", on_delete=models.CASCADE)
     patient = models.ForeignKey(User, related_name="patient", on_delete=models.CASCADE)
-    date = models.DateTimeField(null=True,blank=True)
-    meet_link  = models.URLField(max_length = 500,null=True,blank=True)
+    date = models.DateField()
+    time = models.TimeField()
+    problem = models.TextField(null=True,blank=True)
     approved = models.BooleanField(default=False)
     conducted = models.BooleanField(default=False)
 
@@ -30,16 +31,9 @@ class Subscriber(models.Model):
     patient = models.ForeignKey(User, on_delete=models.CASCADE)
     subscription = models.ForeignKey(Subscription_Model, on_delete=models.CASCADE)
     subscribed_on = models.DateField(auto_now_add=True)
-
-class Self_Care(models.Model):
-    title = models.CharField(max_length = 500)
-    posted_by = models.ForeignKey(User, on_delete=models.CASCADE)
-    file = models.FileField(upload_to='selfcare')
-    posted_on = models.DateTimeField(auto_now=True)
+    is_subscribed = models.BooleanField(default=False)
 
     def __str__(self):
-        return self.title
+        return str(self.patient)
 
-    class Meta:
-        verbose_name_plural = "Self Care Techniques"
     

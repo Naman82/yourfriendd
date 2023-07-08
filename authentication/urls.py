@@ -9,7 +9,7 @@ urlpatterns = [
     path('user-convert-token', views.convertTokenViewNew.as_view(), name='convert-token'),
 
     path('patient/profile/',views.PatientProfile.as_view(),name='patient-profile'),
+    path('patient/profile/all/',views.PatientProfileAllView.as_view(),name='patient-profile-all'),
     path('consultant/profile/',views.ConsultantProfile.as_view(),name='consultant-profile'),
     path('consultant/profile/all/',views.ConsultantProfileAllView.as_view(),name='consultant-profile-all'),
-    path('consultant/id/',views.ConsultantIDView.as_view(),name='consultant-id'),
 ]

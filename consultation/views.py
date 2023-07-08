@@ -8,12 +8,12 @@ from rest_framework.decorators import api_view, permission_classes,authenticatio
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
 from oauth2_provider.contrib.rest_framework import OAuth2Authentication
-from drf_social_oauth2.authentication import SocialAuthentication
+from drf_social_oauth2.authentication import SocialAuthentication   
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.conf import settings
 from social_django.models import UserSocialAuth
 from yourfriendd.utils import send_response
-from .serializers import AppointmentSerializer,SubscriptionSerializer,SubscriberSerializer,SelfCareSerializer
+from .serializers import AppointmentSerializer,SubscriptionSerializer,SubscriberSerializer
 from authentication.models import Consultant
 image_id = openapi.Parameter('id', openapi.IN_QUERY, description="Id of object to delete", type=openapi.TYPE_INTEGER)
 from .models import *
@@ -89,71 +89,71 @@ class SubscriptionView(APIView):
         except Exception as e:
             return send_response(result=False, message=str(e))
 
-class SelfCareView(APIView):
-    parser_classes=[MultiPartParser,FormParser]
-    permission_classes=[IsAuthenticated]
-    authentication_classes=[OAuth2Authentication,SocialAuthentication]
+# class SelfCareView(APIView):
+#     parser_classes=[MultiPartParser,FormParser]
+#     permission_classes=[IsAuthenticated]
+#     authentication_classes=[OAuth2Authentication,SocialAuthentication]
 
-    def get(self,request):
-        try:
-            if request.user.is_anonymous:
-                return send_response(result=False, message="Authentication required")
+#     def get(self,request):
+#         try:
+#             if request.user.is_anonymous:
+#                 return send_response(result=False, message="Authentication required")
 
-            techniques= Self_Care.objects.all()
-            serializer=SelfCareSerializer(techniques,many=True)
-            return send_response(data=serializer.data)
-        except Exception as e:
-            return send_response(result=False, message=str(e))
+#             techniques= Self_Care.objects.all()
+#             serializer=SelfCareSerializer(techniques,many=True)
+#             return send_response(data=serializer.data)
+#         except Exception as e:
+#             return send_response(result=False, message=str(e))
 
-    def post(self,request):
-        try:
-            if request.user.is_anonymous:
-                return send_response(result=False, message="Authentication required")
-            user = User.objects.get(pk=request.user.pk)
-            if user.user_type != 2:
-                return send_response(result=False, message=" Consultant does not exist")
-            selfcare=Self_Care(title=request.data.get('title'),posted_by=request.user,file=request.data.get('file'))
-            selfcare.save()
-            # serializer=SelfCareSerializer(data=request.data)
-            # if serializer.is_valid():
-            #     serializer.save()
-            return send_response(result=True, message="Self Care Techniques Added Successfully")
-            # else:
-            #     return send_response(result=False, message="Something went wrong")
-        except Exception as e:
-            return send_response(result=False, message=str(e))
+#     def post(self,request):
+#         try:
+#             if request.user.is_anonymous:
+#                 return send_response(result=False, message="Authentication required")
+#             user = User.objects.get(pk=request.user.pk)
+#             if user.user_type != 2:
+#                 return send_response(result=False, message=" Consultant does not exist")
+#             selfcare=Self_Care(title=request.data.get('title'),posted_by=request.user,file=request.data.get('file'))
+#             selfcare.save()
+#             # serializer=SelfCareSerializer(data=request.data)
+#             # if serializer.is_valid():
+#             #     serializer.save()
+#             return send_response(result=True, message="Self Care Techniques Added Successfully")
+#             # else:
+#             #     return send_response(result=False, message="Something went wrong")
+#         except Exception as e:
+#             return send_response(result=False, message=str(e))
 
-    def patch(self,request):
-        try:
-            if request.user.is_anonymous:
-                return send_response(result=False, message="Authentication required")
-            consultant=User.objects.get(pk=request.user.pk)
-            if consultant.user_type != 2:
-                return send_response(result=False, message=" Consultant does not exist")
-            serializer=SelfCareSerializer(posted_by=consultant,data=request.data,partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                return send_response(result=True, message="Self Care Technique Updated Successfully")
-            else:
-                return send_response(result=False, message="Something went wrong")
-        except Exception as e:
-            return send_response(result=False, message=str(e))
+#     def patch(self,request):
+#         try:
+#             if request.user.is_anonymous:
+#                 return send_response(result=False, message="Authentication required")
+#             consultant=User.objects.get(pk=request.user.pk)
+#             if consultant.user_type != 2:
+#                 return send_response(result=False, message=" Consultant does not exist")
+#             serializer=SelfCareSerializer(posted_by=consultant,data=request.data,partial=True)
+#             if serializer.is_valid():
+#                 serializer.save()
+#                 return send_response(result=True, message="Self Care Technique Updated Successfully")
+#             else:
+#                 return send_response(result=False, message="Something went wrong")
+#         except Exception as e:
+#             return send_response(result=False, message=str(e))
 
-class SelfCareEditView(APIView):
-    parser_classes=[MultiPartParser,FormParser]
-    permission_classes=[IsAuthenticated]
-    authentication_classes=[OAuth2Authentication,SocialAuthentication]
+# class SelfCareEditView(APIView):
+    # parser_classes=[MultiPartParser,FormParser]
+    # permission_classes=[IsAuthenticated]
+    # authentication_classes=[OAuth2Authentication,SocialAuthentication]
 
-    def patch(self,request,pk):
-        try:
-            selfcare=Self_Care.objects.get(pk=pk)
+    # def patch(self,request,pk):
+    #     try:
+    #         selfcare=Self_Care.objects.get(pk=pk)
 
-            serializer=SelfCareSerializer(selfcare,data=request.data,partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                return send_response(result=True, message="Self Care Technique Updated Successfully")
-            else:
-                print(serializer.data)
-                return send_response(result=False, message="Something went wrong")
-        except Exception as e:
-            return send_response(result=False, message=str(e))
+    #         serializer=SelfCareSerializer(selfcare,data=request.data,partial=True)
+    #         if serializer.is_valid():
+    #             serializer.save()
+    #             return send_response(result=True, message="Self Care Technique Updated Successfully")
+    #         else:
+    #             print(serializer.data)
+    #             return send_response(result=False, message="Something went wrong")
+    #     except Exception as e:
+    #         return send_response(result=False, message=str(e))

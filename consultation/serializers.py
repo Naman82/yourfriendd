@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Appointment, Subscriber, Self_Care, Subscription_Model
+from .models import Appointment, Subscriber, Subscription_Model
 
 class AppointmentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -11,10 +11,10 @@ class SubscriberSerializer(serializers.ModelSerializer):
         model=Subscriber
         fields="__all__"
 
-class SelfCareSerializer(serializers.ModelSerializer):
-    class Meta:
-        model=Self_Care
-        fields="__all__"
+# class SelfCareSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model=Self_Care
+#         fields="__all__"
 
 class SubscriptionSerializer(serializers.ModelSerializer):
     class Meta:

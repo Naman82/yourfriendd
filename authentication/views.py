@@ -1,22 +1,14 @@
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
-import json
-from django.core import serializers
 from django.utils.decorators import method_decorator
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view, permission_classes,authentication_classes
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import viewsets
 from oauth2_provider.contrib.rest_framework import OAuth2Authentication
 from drf_social_oauth2.authentication import SocialAuthentication
-from rest_framework.parsers import MultiPartParser, FormParser
-from django.conf import settings
 from social_django.models import UserSocialAuth
 from yourfriendd.utils import send_response
-from .serializers import PatientProfileSerializer,ConsultantProfileSerializer,UserSerializer
+from .serializers import PatientProfileSerializer,ConsultantProfileSerializer
 from drf_social_oauth2.views import TokenView, ConvertTokenView
-from django.conf import settings
-from rest_framework.response import Response
 from django.http import JsonResponse
 image_id = openapi.Parameter('id', openapi.IN_QUERY, description="Id of object to delete", type=openapi.TYPE_INTEGER)
 from .models import *
@@ -46,7 +38,14 @@ class UserView(APIView):
                 if not user.exists():
                     if user_type == 0:
                         return send_response(result=False,message="Admins cannot be created directly")
-                    User.object.create_user(email=email,user_type=user_type, password=password)
+                    new_user=User.object.create_user(email=email,user_type=user_type, password=password)
+                    new_user.save()
+                    if user_type == 1:
+                        patient = Patient(user=new_user)
+                        patient.save()
+                    elif user_type == 2:
+                        consultant = Consultant(user=new_user)
+                        consultant.save()
                     return send_response(result=True, message="User created successfully")
                 else:
                     if UserSocialAuth(user=user[0]).user_exists():
@@ -111,6 +110,10 @@ class PatientProfile(APIView):
                     'name': patient_profile.name,
                     'age': patient_profile.age,
                     'gender': patient_profile.gender,
+                    'marital_status': patient_profile.marital_status,
+                    'country': patient_profile.country, 
+                    'address': patient_profile.address,
+                    'mobile_number': patient_profile.mobile_number,
                     'history': patient_profile.history,
                     
                 }
@@ -120,13 +123,13 @@ class PatientProfile(APIView):
         except Exception as e:
             return send_response(result=False, message=str(e))
 
-    def post(self,request):
-        try:
-            patient = Patient(user=request.user,name=request.data.get('name'),age=request.data.get('age'),gender=request.data.get('gender'),history=request.data.get('history'))
-            patient.save()
-            return send_response(result=True, message="Patient Profile Created Successfully")
-        except Exception as e:
-            return send_response(result=False, message=str(e))
+    # def post(self,request):
+    #     try:
+    #         patient = Patient(user=request.user,name=request.data.get('name'),age=request.data.get('age'),gender=request.data.get('gender'),history=request.data.get('history'))
+    #         patient.save()
+    #         return send_response(result=True, message="Patient Profile Created Successfully")
+    #     except Exception as e:
+    #         return send_response(result=False, message=str(e))
 
     def patch(self,request):
         try:
@@ -135,7 +138,7 @@ class PatientProfile(APIView):
             user=User.objects.get(pk=request.user.pk)
             patient=Patient.objects.get(user=user)
             serializer=PatientProfileSerializer(patient,data=request.data,partial=True)
-            print(request.data)
+            # print(request.data)
             if serializer.is_valid(raise_exception=True):
                 serializer.save()
                 return send_response(result=True, message="Patient Profile Updated Successfully")
@@ -157,16 +160,14 @@ class ConsultantProfile(APIView):
             if Consultant.objects.filter(user=user).exists():
                 consultant_profile = Consultant.objects.get(user=user)
                 data={
-                    'email': user.email,
                     'profile_pic': user.profile_pic.url,
                     'name': consultant_profile.name,
                     'qualification': consultant_profile.qualification,
                     'speciality': consultant_profile.speciality,
-                    'clinic': consultant_profile.clinic,
+                    'clinic_address': consultant_profile.clinic_address,
                     'contact': consultant_profile.contact,
                     'bio': consultant_profile.bio,
-                    'consultant_email': consultant_profile.email,
-                    
+                    'email': consultant_profile.email,  
                 }
                 return JsonResponse(data)
             else:
@@ -174,13 +175,13 @@ class ConsultantProfile(APIView):
         except Exception as e:
             return send_response(result=False, message=str(e))
 
-    def post(self,request):
-        try:
-            consultant = Consultant(user=request.user,name=request.data.get('name'),qualification=request.data.get('qualification'),speciality=request.data.get('speciality'),clinic=request.data.get('clinic'),contact=request.data.get('contact'),email=request.data.get('email'),bio=request.data.get('bio'))
-            consultant.save()
-            return send_response(result=True, message="Consultant Profile Created Successfully")
-        except Exception as e:
-            return send_response(result=False, message=str(e))
+    # def post(self,request):
+    #     try:
+    #         consultant = Consultant(user=request.user,name=request.data.get('name'),qualification=request.data.get('qualification'),speciality=request.data.get('speciality'),clinic=request.data.get('clinic'),contact=request.data.get('contact'),email=request.data.get('email'),bio=request.data.get('bio'))
+    #         consultant.save()
+    #         return send_response(result=True, message="Consultant Profile Created Successfully")
+    #     except Exception as e:
+    #         return send_response(result=False, message=str(e))
 
     def patch(self,request):
         try:
@@ -209,14 +210,26 @@ class ConsultantProfileAllView(APIView):
         except Exception as e:
             return send_response(result=False, message=str(e)) 
 
-class ConsultantIDView(APIView):
+class PatientProfileAllView(APIView):
     permission_classes=[IsAuthenticated]
     authentication_classes=[OAuth2Authentication,SocialAuthentication]
 
     def get(self,request):
         try:
-           consultant = User.objects.get(pk=request.user.pk)
-           serializer = UserSerializer(consultant)
-           return send_response(result=200,data=serializer.data['id'])
+           patients = Patient.objects.all()
+           serializer = PatientProfileSerializer(patients,many=True)
+           return send_response(result=200,data=serializer.data)
         except Exception as e:
             return send_response(result=False, message=str(e)) 
+
+# class ConsultantIDView(APIView):
+#     permission_classes=[IsAuthenticated]
+#     authentication_classes=[OAuth2Authentication,SocialAuthentication]
+
+#     def get(self,request):
+#         try:
+#            consultant = User.objects.get(pk=request.user.pk)
+#            serializer = UserSerializer(consultant)
+#            return send_response(result=200,data=serializer.data['id'])
+#         except Exception as e:
+#             return send_response(result=False, message=str(e)) 
