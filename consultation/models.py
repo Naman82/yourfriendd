@@ -31,7 +31,7 @@ class Subscriber(models.Model):
     patient = models.ForeignKey(User, on_delete=models.CASCADE)
     subscription = models.ForeignKey(Subscription_Model, on_delete=models.CASCADE)
     subscribed_on = models.DateField(auto_now_add=True)
-    is_subscribed = models.BooleanField(default=False)
+    # is_subscribed = models.BooleanField(default=False)
 
     def __str__(self):
         return str(self.patient)

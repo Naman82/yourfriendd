@@ -17,7 +17,21 @@ from .serializers import AppointmentSerializer,SubscriptionSerializer,Subscriber
 from authentication.models import Consultant
 image_id = openapi.Parameter('id', openapi.IN_QUERY, description="Id of object to delete", type=openapi.TYPE_INTEGER)
 from .models import *
+from authentication.models import Patient
+from datetime import date
+from django.core.exceptions import ObjectDoesNotExist
 # Create your views here.
+
+def subscriptionCheck(user):
+    try:
+        subscribed_patient = Patient.objects.get(user=user)
+        subscribed_users = Subscriber.objects.filter(patient=subscribed_patient)
+        for i in subscribed_users:
+            if i.subscribed_on > date.today():
+                return True
+    except ObjectDoesNotExist:
+        pass
+    return False
 
 class AppointmentView(APIView):
     permission_classes=[IsAuthenticated]
@@ -28,26 +42,46 @@ class AppointmentView(APIView):
             if request.user.is_anonymous:
                 return send_response(result=False, message="Authentication required")
             user = User.objects.get(pk=request.user.pk)
-            if user.user_type != 2:
-                return send_response(result=False, message=" Consultant does not exist")
+            if user.user_type == 1:
+                is_subscribed = subscriptionCheck(user)
+                if is_subscribed == False:
+                    return send_response(result=True, message="Patient has not subscribed")
+                else:
+                    if Appointment.objects.filter(patient=user).exists():
+                        appointments = Appointment.objects.filter(patient=user)
+                        serializer = AppointmentSerializer(appointments,many=True)
+                        return send_response(result=True,data=serializer.data)
+                    else:
+                        return send_response(result=True,message="Appointment does not exist")
             if Appointment.objects.filter(doctor=user).exists():
                 appointments = Appointment.objects.filter(doctor=user)
+                #only not conducted appointments logic need to be written
                 serializer=AppointmentSerializer(appointments,many=True)
-                return send_response(data=serializer.data)
+                return send_response(result=True,data=serializer.data)
             else:
-               return send_response(result=False, message="Patient Profile does not exists")
+               return send_response(result=True, message="No Appointments available")
         except Exception as e:
             return send_response(result=False, message=str(e))
 
     def post(self,request):
         try:
-            doctor=User.objects.get(pk=request.data.get('doctor'))
-            appointment = Appointment(patient=request.user, doctor=doctor,meet_link=request.data.get('meet_link'),date=request.data.get('date'))
-            appointment.save()
-            return send_response(result=True, message="Appointment Created Successfully")
+            # doctor=User.objects.get(pk=request.data.get('doctor'))
+            # appointment = Appointment(patient=request.user, doctor=doctor,meet_link=request.data.get('meet_link'),date=request.data.get('date'))
+            # appointment.save()
+            if request.user.is_anonymous:
+                return send_response(result=False, message="Authentication required")
+            user = User.objects.get(pk=request.user.pk)
+            if user.user_type == 1:
+                doctor=User.objects.get(pk=request.data.get('doctor'))
+                appointment = Appointment(patient=request.user, doctor=doctor,meet_link=request.data.get('meet_link'),date=request.data.get('date'))
+                appointment.save()
+                return send_response(result=True, message="Appointment Created Successfully")
+            else:
+                return send_response(result=False, message="Consultant cannot create appointment")
         except Exception as e:
             return send_response(result=False, message=str(e))
-
+        
+    
 
 class AppointmentEditView(APIView):
     permission_classes=[IsAuthenticated]
@@ -57,21 +91,19 @@ class AppointmentEditView(APIView):
         try:
             if request.user.is_anonymous:
                 return send_response(result=False, message="Authentication required")
-            # user=User.objects.get(pk=request.user.pk)
-            # consultant=Consultant.objects.get(user=user)
 
-            # if user.user_type != 2:
-                # return send_response(result=False, message="Consultant does not exist")
-            appointment = Appointment.objects.get(pk=pk)
-
-            serializer=AppointmentSerializer(appointment,data=request.data,partial=True)
-            # print(serializer.data)
-            if serializer.is_valid():
-                serializer.save()
-                return send_response(result=True, message="Appointment Updated Successfully")
+            if request.user.user_type == 2:
+                appointment = Appointment.objects.get(pk=pk)
+                serializer=AppointmentSerializer(appointment,data=request.data,partial=True)
+                # print(serializer.data)
+                if serializer.is_valid():
+                    serializer.save()
+                    return send_response(result=True, message="Appointment Updated Successfully")
+                else:
+                    print(serializer.errors)
+                    return send_response(result=False, message="Something went wrong")
             else:
-                print(serializer.errors)
-                return send_response(result=False, message="Something went wrong")
+                return send_response(result=True, message="Appointment can be edited by consultant")
         except Exception as e:
             return send_response(result=False, message=str(e))
     
@@ -79,81 +111,51 @@ class SubscriptionView(APIView):
     permission_classes=[IsAuthenticated]
     authentication_classes=[OAuth2Authentication,SocialAuthentication]
 
-    def post(self,request):
+    def get(self,request):
         try:
-            subscription=Subscription_Model(title=request.data.get('title'),description=request.data.get('description'),pricing=request.data.get('pricing'),expires_in=request.data.get('expires_in'))
-            subscriber = Subscriber(patient=request.user,subscription=subscription)
-            subscription.save()
-            subscriber.save()
-            return send_response(result=True, message="Subscription Added Successfully")
+            subscriptions = Subscription_Model.objects.all()
+            serializer = SubscriptionSerializer(subscriptions,many=True)
+            return send_response(result=True,data=serializer.data)
         except Exception as e:
             return send_response(result=False, message=str(e))
 
-# class SelfCareView(APIView):
-#     parser_classes=[MultiPartParser,FormParser]
-#     permission_classes=[IsAuthenticated]
-#     authentication_classes=[OAuth2Authentication,SocialAuthentication]
+    # SUBSCRIPTION MODEL TO BE ADDED BY ADMIN
 
-#     def get(self,request):
-#         try:
-#             if request.user.is_anonymous:
-#                 return send_response(result=False, message="Authentication required")
-
-#             techniques= Self_Care.objects.all()
-#             serializer=SelfCareSerializer(techniques,many=True)
-#             return send_response(data=serializer.data)
-#         except Exception as e:
-#             return send_response(result=False, message=str(e))
-
-#     def post(self,request):
-#         try:
-#             if request.user.is_anonymous:
-#                 return send_response(result=False, message="Authentication required")
-#             user = User.objects.get(pk=request.user.pk)
-#             if user.user_type != 2:
-#                 return send_response(result=False, message=" Consultant does not exist")
-#             selfcare=Self_Care(title=request.data.get('title'),posted_by=request.user,file=request.data.get('file'))
-#             selfcare.save()
-#             # serializer=SelfCareSerializer(data=request.data)
-#             # if serializer.is_valid():
-#             #     serializer.save()
-#             return send_response(result=True, message="Self Care Techniques Added Successfully")
-#             # else:
-#             #     return send_response(result=False, message="Something went wrong")
-#         except Exception as e:
-#             return send_response(result=False, message=str(e))
-
-#     def patch(self,request):
-#         try:
-#             if request.user.is_anonymous:
-#                 return send_response(result=False, message="Authentication required")
-#             consultant=User.objects.get(pk=request.user.pk)
-#             if consultant.user_type != 2:
-#                 return send_response(result=False, message=" Consultant does not exist")
-#             serializer=SelfCareSerializer(posted_by=consultant,data=request.data,partial=True)
-#             if serializer.is_valid():
-#                 serializer.save()
-#                 return send_response(result=True, message="Self Care Technique Updated Successfully")
-#             else:
-#                 return send_response(result=False, message="Something went wrong")
-#         except Exception as e:
-#             return send_response(result=False, message=str(e))
-
-# class SelfCareEditView(APIView):
-    # parser_classes=[MultiPartParser,FormParser]
-    # permission_classes=[IsAuthenticated]
-    # authentication_classes=[OAuth2Authentication,SocialAuthentication]
-
-    # def patch(self,request,pk):
+    # def post(self,request):
     #     try:
-    #         selfcare=Self_Care.objects.get(pk=pk)
-
-    #         serializer=SelfCareSerializer(selfcare,data=request.data,partial=True)
-    #         if serializer.is_valid():
-    #             serializer.save()
-    #             return send_response(result=True, message="Self Care Technique Updated Successfully")
-    #         else:
-    #             print(serializer.data)
-    #             return send_response(result=False, message="Something went wrong")
+    #         subscription=Subscription_Model(title=request.data.get('title'),description=request.data.get('description'),pricing=request.data.get('pricing'),expires_in=request.data.get('expires_in'))
+    #         subscriber = Subscriber(patient=request.user,subscription=subscription)
+    #         subscription.save()
+    #         subscriber.save()
+    #         return send_response(result=True, message="Subscription Added Successfully")
     #     except Exception as e:
     #         return send_response(result=False, message=str(e))
+
+
+
+class SubscriptionBuyView(APIView):
+    permission_classes=[IsAuthenticated]
+    authentication_classes=[OAuth2Authentication,SocialAuthentication]
+
+    def post(self,request):
+        try:
+            user = User.objects.get(pk=request.user.pk)
+            subscription=Subscription_Model.objects.get(pk=request.data.get('subscription'))
+            if user.user_type == 1:
+                is_subscribed = subscriptionCheck(user)
+                if is_subscribed == False:
+                    if Subscriber.objects.filter(subscription=subscription).exists():
+                        subscribed_pack = Subscriber.objects.get(subscription=subscription)
+                        subscribed_pack.subscribed_on = request.data.get('subscribed_on')
+                        subscribed_pack.save()
+                        return send_response(result=True,message="Subscription pack created successfully")
+                    else:
+                        new_subscribed_pack = Subscriber(patient=user,subscription=subscription,subscribed_on=request.data.get('subscribed_on'))
+                        new_subscribed_pack.save()
+                        return send_response(result=True,message="Subscription pack created successfully")
+                else:
+                    return send_response(result=True,message="Subscription pack already active")
+            pass
+        except Exception as e:
+           return send_response(result=False, message=str(e))
+

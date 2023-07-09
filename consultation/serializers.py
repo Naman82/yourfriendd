@@ -11,11 +11,6 @@ class SubscriberSerializer(serializers.ModelSerializer):
         model=Subscriber
         fields="__all__"
 
-# class SelfCareSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model=Self_Care
-#         fields="__all__"
-
 class SubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model=Subscription_Model
