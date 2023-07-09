@@ -20,14 +20,14 @@ from .models import *
 from authentication.models import Patient
 from datetime import date
 from django.core.exceptions import ObjectDoesNotExist
+from dateutil.relativedelta import relativedelta
 # Create your views here.
 
 def subscriptionCheck(user):
     try:
-        subscribed_patient = Patient.objects.get(user=user)
-        subscribed_users = Subscriber.objects.filter(patient=subscribed_patient)
+        subscribed_users = Subscriber.objects.filter(patient=user)
         for i in subscribed_users:
-            if i.subscribed_on > date.today():
+            if i.subscribed_till > date.today():
                 return True
     except ObjectDoesNotExist:
         pass
@@ -131,8 +131,16 @@ class SubscriptionView(APIView):
     #     except Exception as e:
     #         return send_response(result=False, message=str(e))
 
-
-
+@method_decorator(name='post', decorator=swagger_auto_schema(
+    operation_description="subscription buy",
+    tags=["subscription"],
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'subscription':openapi.Schema(type=openapi.TYPE_INTEGER, description="Subscription model id"),
+        }
+    )
+))
 class SubscriptionBuyView(APIView):
     permission_classes=[IsAuthenticated]
     authentication_classes=[OAuth2Authentication,SocialAuthentication]
@@ -141,16 +149,18 @@ class SubscriptionBuyView(APIView):
         try:
             user = User.objects.get(pk=request.user.pk)
             subscription=Subscription_Model.objects.get(pk=request.data.get('subscription'))
+            subscription_model_time = subscription.expires_in
+            subscription_time = date.today()+relativedelta(months=subscription_model_time)
             if user.user_type == 1:
                 is_subscribed = subscriptionCheck(user)
                 if is_subscribed == False:
                     if Subscriber.objects.filter(subscription=subscription).exists():
                         subscribed_pack = Subscriber.objects.get(subscription=subscription)
-                        subscribed_pack.subscribed_on = request.data.get('subscribed_on')
+                        subscribed_pack.subscribed_till = subscription_time
                         subscribed_pack.save()
                         return send_response(result=True,message="Subscription pack created successfully")
                     else:
-                        new_subscribed_pack = Subscriber(patient=user,subscription=subscription,subscribed_on=request.data.get('subscribed_on'))
+                        new_subscribed_pack = Subscriber(patient=request.user,subscription=subscription,subscribed_till=subscription_time)
                         new_subscribed_pack.save()
                         return send_response(result=True,message="Subscription pack created successfully")
                 else:

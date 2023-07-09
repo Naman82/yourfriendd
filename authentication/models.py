@@ -1,16 +1,10 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
-from django.core.validators import MaxValueValidator
-import os, uuid
 from .managers import UserManager
 from django.utils.translation import gettext_lazy as _
 
 class User(AbstractUser):
-    def get_update_filename(self, filename):
-        ext = filename.split('.')[-1]
-        filename = "%s.%s" % (uuid.uuid4(), ext)
-        return os.path.join('uploads/user/profile', filename)
     username = None
     USER_TYPE_CHOICES = [
         (0, 'Admin'),
@@ -22,7 +16,6 @@ class User(AbstractUser):
     user_type = models.IntegerField(choices=USER_TYPE_CHOICES, default=1)
     date_joined = models.DateTimeField(default=timezone.now)
     is_active = models.BooleanField(default=True)
-    profile_pic = models.ImageField(upload_to=get_update_filename, null=True,blank=True)
     created_at = models.DateField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     USERNAME_FIELD = 'email'
