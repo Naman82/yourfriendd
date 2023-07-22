@@ -81,16 +81,10 @@ WSGI_APPLICATION = 'yourfriendd.wsgi.application'
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
+import dj_database_url
 
 DATABASES = {
-  'default': {
-    'ENGINE': os.getenv('ENGINE'),
-    'NAME': os.getenv('NAME'),
-    'USER': os.getenv('USER'),
-    'PASSWORD': os.getenv('PASSWORD'),
-    'HOST': os.getenv('HOST'),
-    'PORT': os.getenv('PORT'),
-  }
+    'default': dj_database_url.parse(os.environ.get('DATABASE_URL'), conn_max_age=600),
 }
 
 
