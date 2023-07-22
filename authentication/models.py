@@ -20,7 +20,7 @@ class User(AbstractUser):
     updated_at = models.DateTimeField(auto_now=True)
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['user_type']
-    object = UserManager()
+    objects = UserManager()
 
     def __str__(self):
         return "{},{},{}".format(self.email, self.first_name, self.type_value)

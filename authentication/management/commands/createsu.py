@@ -2,10 +2,8 @@
 
 # from django.contrib.auth.models import User
 from authentication.models import User
-from authentication.managers import UserManager
 from django.core.management.base import BaseCommand
 
-UserManager()
 
 class Command(BaseCommand):
     help = 'Creates a superuser.'
